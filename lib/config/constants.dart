@@ -12,7 +12,7 @@ class AppConstants {
   static const int longBreakLength = 15;
 
   // App Info
-  static const String appName = 'FocusFlow';
+  static const String appName = 'GoAhead';
   static const String appVersion = '1.0.0';
 
   // Hive Box Names

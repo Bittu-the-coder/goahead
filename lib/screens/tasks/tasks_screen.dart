@@ -61,66 +61,80 @@ class TasksScreen extends StatelessWidget {
   }
 
   void _showTaskDialog(BuildContext context, [Task? task]) {
+    final screenWidth = MediaQuery.of(context).size.width;
     final titleController = TextEditingController(text: task?.title);
     final descController = TextEditingController(text: task?.description);
     String priority = task?.priority ?? 'medium';
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(task == null ? 'New Task' : 'Edit Task'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Title'),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descController,
-                decoration: const InputDecoration(labelText: 'Description'),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: priority,
-                decoration: const InputDecoration(labelText: 'Priority'),
-                items: const [
-                  DropdownMenuItem(value: 'low', child: Text('Low')),
-                  DropdownMenuItem(value: 'medium', child: Text('Medium')),
-                  DropdownMenuItem(value: 'high', child: Text('High')),
-                ],
-                onChanged: (value) => priority = value!,
-              ),
-            ],
+      builder: (context) => Dialog(
+        child: Container(
+          width: screenWidth * 0.9,
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  task == null ? 'New Task' : 'Edit Task',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(labelText: 'Title *', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descController,
+                  decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: priority,
+                  decoration: const InputDecoration(labelText: 'Priority', border: OutlineInputBorder()),
+                  items: const [
+                    DropdownMenuItem(value: 'low', child: Text('Low')),
+                    DropdownMenuItem(value: 'medium', child: Text('Medium')),
+                    DropdownMenuItem(value: 'high', child: Text('High')),
+                  ],
+                  onChanged: (value) => priority = value!,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () {
+                        final newTask = Task(
+                          id: task?.id,
+                          title: titleController.text,
+                          description: descController.text,
+                          priority: priority,
+                        );
+                        if (task == null) {
+                          context.read<TaskProvider>().createTask(newTask);
+                        } else {
+                          context.read<TaskProvider>().updateTask(task.id!, newTask);
+                        }
+                        Navigator.pop(context);
+                      },
+                      child: Text(task == null ? 'Create' : 'Update'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final newTask = Task(
-                id: task?.id,
-                title: titleController.text,
-                description: descController.text,
-                priority: priority,
-              );
-
-              if (task == null) {
-                context.read<TaskProvider>().createTask(newTask);
-              } else {
-                context.read<TaskProvider>().updateTask(task.id!, newTask);
-              }
-              Navigator.pop(context);
-            },
-            child: Text(task == null ? 'Create' : 'Update'),
-          ),
-        ],
       ),
     );
   }

@@ -63,33 +63,30 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Logo
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'F',
-                        style: TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                  ClipOval(
+                    child: Image.asset(
+                      'assets/icon/app_icon.png',
+                      width: 80,
+                      height: 80,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: 80,
+                        height: 80,
+                        decoration: const BoxDecoration(
+                          color: AppTheme.primaryColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: Text('G', style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white)),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 24),
 
-                  // Title
                   const Text(
-                    'Welcome Back',
+                    'Welcome to GoAhead',
                     style: TextStyle(
-                      fontSize: 32,
+                      fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: AppTheme.textPrimary,
                     ),
@@ -97,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Login to continue your productivity journey',
+                    'Login to continue your study journey',
                     style: TextStyle(
                       fontSize: 16,
                       color: AppTheme.textSecondary,

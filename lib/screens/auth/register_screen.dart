@@ -4,6 +4,7 @@ import '../../providers/auth_provider.dart';
 import '../../utils/validators.dart';
 import '../../config/theme.dart';
 import '../home/dashboard_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -50,8 +51,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (success && mounted) {
+        // Show onboarding tour for new users
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
         );
       } else if (mounted && authProvider.error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -95,7 +97,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Start your productivity journey today',
+                    'Start your study journey with GoAhead',
                     style: TextStyle(
                       fontSize: 16,
                       color: AppTheme.textSecondary,

@@ -168,7 +168,7 @@ class DashboardHome extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              _buildTodayStats(taskProvider, planProvider),
+              _buildTodayStats(context, taskProvider, planProvider),
 
               const SizedBox(height: 24),
 
@@ -206,7 +206,7 @@ class DashboardHome extends StatelessWidget {
     );
   }
 
-  Widget _buildTodayStats(TaskProvider taskProvider, PlanProvider planProvider) {
+  Widget _buildTodayStats(BuildContext context, TaskProvider taskProvider, PlanProvider planProvider) {
     final todayTasks = taskProvider.tasks.where((t) {
       if (t.createdAt == null) return false;
       return t.createdAt!.day == DateTime.now().day &&
@@ -215,11 +215,9 @@ class DashboardHome extends StatelessWidget {
 
     final todayCompletedTasks = todayTasks.where((t) => t.completed).length;
 
-    final todayStudyTasks = planProvider.todayTasks;
-    final todayCompletedStudy = todayStudyTasks.where((s) => s.completed).length;
-
-    // Calculate study time
-    final todayStudyMinutes = todayStudyTasks.fold<int>(0, (sum, task) => sum + task.duration);
+    // Get actual study time from stats provider
+    final statsProvider = context.watch<StatsProvider>();
+    final todayStudyMinutes = statsProvider.dailyMinutes;
     final todayStudyHours = (todayStudyMinutes / 60).toStringAsFixed(1);
 
     return Row(

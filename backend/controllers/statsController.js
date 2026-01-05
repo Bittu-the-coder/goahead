@@ -1,5 +1,4 @@
 import { BADGES, checkBadgeEligibility } from '../config/badges.js';
-import StudySession from '../models/StudySession.js';
 import User from '../models/User.js';
 
 // @desc    Get user stats summary
@@ -17,33 +16,43 @@ export const getStatsSummary = async (req, res) => {
 
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    // Get sessions for different time periods
-    const [dailySessions, weeklySessions, monthlySessions] = await Promise.all([
-      StudySession.find({ user: req.user.id, startTime: { $gte: today }, completed: true }),
-      StudySession.find({ user: req.user.id, startTime: { $gte: weekStart }, completed: true }),
-      StudySession.find({ user: req.user.id, startTime: { $gte: monthStart }, completed: true })
-    ]);
+    // Calculate from dailyStudyLog stored in user document
+    const dailyLog = user.dailyStudyLog || [];
 
-    const dailyMinutes = dailySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
-    const weeklyMinutes = weeklySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
-    const monthlyMinutes = monthlySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+    // Daily minutes - today only
+    const todayLog = dailyLog.find(log => {
+      const logDate = new Date(log.date);
+      logDate.setHours(0, 0, 0, 0);
+      return logDate.getTime() === today.getTime();
+    });
+    const dailyMinutes = todayLog?.minutes || 0;
+
+    // Weekly minutes
+    const weeklyMinutes = dailyLog
+      .filter(log => new Date(log.date) >= weekStart)
+      .reduce((sum, log) => sum + (log.minutes || 0), 0);
+
+    // Monthly minutes
+    const monthlyMinutes = dailyLog
+      .filter(log => new Date(log.date) >= monthStart)
+      .reduce((sum, log) => sum + (log.minutes || 0), 0);
 
     res.json({
       success: true,
       stats: {
         daily: {
           minutes: dailyMinutes,
-          sessions: dailySessions.length,
+          sessions: 0,
           goal: user.preferences?.dailyGoal || 240
         },
         weekly: {
           minutes: weeklyMinutes,
-          sessions: weeklySessions.length,
+          sessions: 0,
           goal: user.studyStats?.weeklyGoal || 600
         },
         monthly: {
           minutes: monthlyMinutes,
-          sessions: monthlySessions.length
+          sessions: 0
         },
         lifetime: {
           minutes: user.studyStats?.totalMinutes || 0,

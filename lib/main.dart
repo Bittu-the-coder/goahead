@@ -6,8 +6,10 @@ import 'providers/task_provider.dart';
 import 'providers/goal_provider.dart';
 import 'providers/plan_provider.dart';
 import 'providers/stats_provider.dart';
+import 'providers/timer_provider.dart';
 import 'services/api_service.dart';
 import 'services/storage_service.dart';
+import 'services/notification_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/dashboard_screen.dart';
 
@@ -17,6 +19,7 @@ void main() async {
   // Initialize services
   await StorageService().initialize();
   await ApiService().initialize();
+  await NotificationService().initialize();
 
   runApp(const MyApp());
 }
@@ -33,9 +36,10 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => GoalProvider()),
         ChangeNotifierProvider(create: (_) => PlanProvider()),
         ChangeNotifierProvider(create: (_) => StatsProvider()),
+        ChangeNotifierProvider(create: (_) => TimerProvider()),
       ],
       child: MaterialApp(
-        title: 'FocusFlow',
+        title: 'GoAhead',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         home: const SplashScreen(),
@@ -63,13 +67,17 @@ class _SplashScreenState extends State<SplashScreen> {
     await authProvider.initialize();
 
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => authProvider.isAuthenticated
-              ? const DashboardScreen()
-              : const LoginScreen(),
-        ),
-      );
+      if (authProvider.isAuthenticated) {
+        // Logged in user - go to dashboard
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        );
+      } else {
+        // New user - go to login
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      }
     }
   }
 
@@ -80,29 +88,28 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
-                ),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: const Center(
-                child: Text(
-                  'F',
-                  style: TextStyle(
-                    fontSize: 56,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+            // App Logo
+            ClipOval(
+              child: Image.asset(
+                'assets/icon/app_icon.png',
+                width: 100,
+                height: 100,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: 100,
+                  height: 100,
+                  decoration: const BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Text('G', style: TextStyle(fontSize: 56, fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 24),
             const Text(
-              'FocusFlow',
+              'GoAhead',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,

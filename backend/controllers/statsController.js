@@ -229,3 +229,36 @@ export const getStreakCalendar = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// @desc    Update user preferences (study goals)
+// @route   POST /api/stats/preferences
+// @access  Private
+export const updatePreferences = async (req, res) => {
+  try {
+    const { dailyGoal, weeklyGoal } = req.body;
+    const user = await User.findById(req.user.id);
+
+    // Update preferences
+    user.preferences = user.preferences || {};
+    if (dailyGoal !== undefined) {
+      user.preferences.dailyGoal = dailyGoal;
+    }
+    if (weeklyGoal !== undefined) {
+      user.studyStats = user.studyStats || {};
+      user.studyStats.weeklyGoal = weeklyGoal;
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Preferences updated',
+      preferences: {
+        dailyGoal: user.preferences.dailyGoal,
+        weeklyGoal: user.studyStats?.weeklyGoal
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

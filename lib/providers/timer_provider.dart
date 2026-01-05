@@ -77,14 +77,12 @@ class TimerProvider with ChangeNotifier {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_seconds > 0) {
         _seconds--;
-        // Update notification every 5 seconds for better sync
-        if (_seconds % 5 == 0) {
-          _notificationService.showTimerNotification(
-            title: _isBreak ? 'Break Time' : 'Studying: $_subject',
-            body: formattedTime,
-            seconds: _seconds,
-          );
-        }
+        // Update notification every second to sync with app
+        _notificationService.showTimerNotification(
+          title: _isBreak ? 'Break Time' : 'Studying: $_subject',
+          body: formattedTime,
+          seconds: _seconds,
+        );
         notifyListeners();
       } else {
         _handleTimerComplete();

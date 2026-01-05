@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../providers/stats_provider.dart';
 import '../../config/theme.dart';
+import '../settings/study_goals_screen.dart';
 
 class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
@@ -47,6 +48,14 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => context.read<StatsProvider>().loadStats(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Study Goals',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const StudyGoalsScreen()),
+            ),
           ),
         ],
       ),

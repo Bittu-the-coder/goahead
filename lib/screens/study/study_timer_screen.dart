@@ -30,10 +30,13 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
   void _checkSessionComplete() async {
     final timerProvider = context.read<TimerProvider>();
     if (timerProvider.sessionJustCompleted && timerProvider.lastCompletedMinutes > 0) {
+      // Save the minutes before clearing
+      final completedMinutes = timerProvider.lastCompletedMinutes;
+
       try {
         // Update stats with the completed minutes
         final newBadges = await context.read<StatsProvider>().updateStudyStats(
-          minutes: timerProvider.lastCompletedMinutes,
+          minutes: completedMinutes,
         );
 
         // Clear the flag
@@ -42,7 +45,7 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('✅ ${timerProvider.lastCompletedMinutes} minutes logged!'),
+              content: Text('✅ $completedMinutes minutes logged!'),
               backgroundColor: Colors.green,
             ),
           );

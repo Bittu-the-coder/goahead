@@ -75,7 +75,7 @@ class _StudyGoalsScreenState extends State<StudyGoalsScreen> {
       appBar: AppBar(
         title: const Text('Study Goals'),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,7 +123,7 @@ class _StudyGoalsScreenState extends State<StudyGoalsScreen> {
               ),
             ),
 
-            const Spacer(),
+            const SizedBox(height: 32),
 
             // Save Button
             SizedBox(

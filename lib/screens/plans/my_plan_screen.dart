@@ -6,6 +6,7 @@ import '../../utils/date_helpers.dart';
 import '../../widgets/gradient_card.dart';
 import 'plan_templates_screen.dart';
 import 'day_schedule_screen.dart';
+import 'plan_editor_screen.dart';
 
 class MyPlanScreen extends StatefulWidget {
   const MyPlanScreen({super.key});
@@ -61,22 +62,61 @@ class _MyPlanScreenState extends State<MyPlanScreen> {
   Widget build(BuildContext context) {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, _) {
+        final allPlans = planProvider.allPlans;
+        final activePlan = planProvider.activePlan;
+
         return Scaffold(
           appBar: AppBar(
-            title: const Text('My Study Plan'),
+            title: allPlans.length > 1
+                ? DropdownButton<String>(
+                    value: activePlan?.id,
+                    underline: const SizedBox(),
+                    dropdownColor: AppTheme.surfaceColor,
+                    icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                    items: allPlans.map((plan) {
+                      return DropdownMenuItem(
+                        value: plan.id,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              plan.name.length > 15 ? '${plan.name.substring(0, 15)}...' : plan.name,
+                              style: const TextStyle(color: Colors.white, fontSize: 16),
+                            ),
+                            const SizedBox(width: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryColor.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${plan.progress.toStringAsFixed(0)}%',
+                                style: const TextStyle(fontSize: 10, color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (id) {
+                      final plan = allPlans.firstWhere((p) => p.id == id);
+                      planProvider.setActivePlan(plan);
+                    },
+                  )
+                : const Text('My Study Plan'),
             actions: [
+              // Add another plan button
               IconButton(
-                icon: const Icon(Icons.explore_outlined),
-                tooltip: 'Browse Templates',
+                icon: const Icon(Icons.add_circle_outline),
+                tooltip: 'Add New Plan',
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const PlanTemplatesScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const PlanTemplatesScreen()),
                   );
                 },
               ),
-              if (planProvider.activePlan != null)
+              if (activePlan != null)
                 PopupMenuButton<String>(
                   onSelected: (value) {
                     if (value == 'delete') {
@@ -496,11 +536,9 @@ class _MyPlanScreenState extends State<MyPlanScreen> {
               const Spacer(),
               TextButton.icon(
                 onPressed: () {
-                  // TODO: Navigate to full plan editor
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Full plan editor coming soon! Use day editor for now.'),
-                      duration: Duration(seconds: 2),
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PlanEditorScreen(plan: activePlan),
                     ),
                   );
                 },

@@ -15,6 +15,7 @@ import authRoutes from './routes/auth.js';
 import goalRoutes from './routes/goals.js';
 import planRoutes from './routes/plans.js';
 import sessionRoutes from './routes/sessions.js';
+import statsRoutes from './routes/stats.js';
 import taskRoutes from './routes/tasks.js';
 
 const app = express();
@@ -23,10 +24,12 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Enable CORS
+// Enable CORS - Allow all origins for mobile app
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true
+  origin: '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Mount routers
@@ -35,6 +38,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/plans', planRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

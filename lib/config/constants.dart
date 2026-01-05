@@ -1,6 +1,6 @@
 class AppConstants {
-  // API Configuration - Updated for physical device (use your computer's local IP)
-  static const String apiBaseUrl = 'http://10.60.176.64:5000/api';
+  // API Configuration - Production
+  static const String apiBaseUrl = 'https://goahead-backend.vercel.app/api';
 
   // Storage Keys
   static const String tokenKey = 'auth_token';

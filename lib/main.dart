@@ -5,6 +5,7 @@ import 'providers/auth_provider.dart';
 import 'providers/task_provider.dart';
 import 'providers/goal_provider.dart';
 import 'providers/plan_provider.dart';
+import 'providers/stats_provider.dart';
 import 'services/api_service.dart';
 import 'services/storage_service.dart';
 import 'screens/auth/login_screen.dart';
@@ -31,6 +32,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TaskProvider()),
         ChangeNotifierProvider(create: (_) => GoalProvider()),
         ChangeNotifierProvider(create: (_) => PlanProvider()),
+        ChangeNotifierProvider(create: (_) => StatsProvider()),
       ],
       child: MaterialApp(
         title: 'FocusFlow',

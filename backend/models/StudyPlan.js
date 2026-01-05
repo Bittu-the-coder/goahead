@@ -38,7 +38,11 @@ const studyPlanSchema = new mongoose.Schema({
   templateType: {
     type: String,
     enum: ['CAT', 'GMAT', 'UPSC', 'JEE', 'NEET', 'SSC', 'DSA', 'General', 'Custom'],
-    required: true
+    default: 'Custom'
+  },
+  isCustom: {
+    type: Boolean,
+    default: false
   },
   description: String,
   startDate: {

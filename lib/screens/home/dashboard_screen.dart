@@ -4,12 +4,14 @@ import '../../providers/auth_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/goal_provider.dart';
 import '../../providers/plan_provider.dart';
+import '../../providers/stats_provider.dart';
 import '../../config/theme.dart';
 import '../../models/study_plan.dart';
 import '../auth/login_screen.dart';
 import '../tasks/tasks_screen.dart';
 import '../study/study_timer_screen.dart';
 import '../goals/goals_screen.dart';
+import '../stats/stats_screen.dart';
 import '../plans/plan_templates_screen.dart';
 import '../plans/my_plan_screen.dart';
 
@@ -24,7 +26,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
 
   Widget _getScreen(int index, PlanProvider planProvider) {
-    if (index == 4) {
+    if (index == 5) {
       return planProvider.activePlan != null
           ? const MyPlanScreen()
           : const PlanTemplatesScreen();
@@ -35,6 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const TasksScreen(),
       const StudyTimerScreen(),
       const GoalsScreen(),
+      const StatsScreen(),
     ];
     return screens[index];
   }
@@ -46,6 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context.read<TaskProvider>().loadTasks();
       context.read<GoalProvider>().loadGoals();
       context.read<PlanProvider>().loadPlans();
+      context.read<StatsProvider>().loadStats();
     });
   }
 
@@ -69,7 +73,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               BottomNavigationBarItem(
                 icon: Icon(Icons.dashboard_outlined),
                 activeIcon: Icon(Icons.dashboard),
-                label: 'Dashboard',
+                label: 'Home',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.check_box_outlined),
@@ -85,6 +89,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 icon: Icon(Icons.flag_outlined),
                 activeIcon: Icon(Icons.flag),
                 label: 'Goals',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.bar_chart_outlined),
+                activeIcon: Icon(Icons.bar_chart),
+                label: 'Stats',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.school_outlined),

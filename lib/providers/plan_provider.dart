@@ -60,6 +60,16 @@ class PlanProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Switch to a different plan
+  void setActivePlan(StudyPlan plan) {
+    _activePlan = plan;
+    _loadTodayTasks();
+    notifyListeners();
+  }
+
+  // Get all user plans (for plan switcher)
+  List<StudyPlan> get allPlans => _plans;
+
   Future<void> _loadTodayTasks() async {
     if (_activePlan == null) return;
 
@@ -91,6 +101,19 @@ class PlanProvider with ChangeNotifier {
         startDate: startDate,
         customizations: customizations,
       );
+      _plans.insert(0, newPlan);
+      _activePlan = newPlan;
+      await _loadTodayTasks();
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> createCustomPlan(Map<String, dynamic> planData) async {
+    try {
+      final newPlan = await _planService.createCustomPlan(planData);
       _plans.insert(0, newPlan);
       _activePlan = newPlan;
       await _loadTodayTasks();

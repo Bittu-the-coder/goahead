@@ -48,6 +48,15 @@ class PlanService {
     throw Exception(response['message'] ?? 'Failed to create plan');
   }
 
+  // Create custom plan (from scratch)
+  Future<StudyPlan> createCustomPlan(Map<String, dynamic> planData) async {
+    final response = await _apiService.post('/plans', planData);
+    if (response['success']) {
+      return StudyPlan.fromJson(response['plan']);
+    }
+    throw Exception(response['message'] ?? 'Failed to create custom plan');
+  }
+
   // Update plan
   Future<StudyPlan> updatePlan(String planId, Map<String, dynamic> data) async {
     final response = await _apiService.put('/plans/$planId', data);

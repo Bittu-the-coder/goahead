@@ -5,6 +5,7 @@ import '../../models/plan_template.dart';
 import '../../config/theme.dart';
 import '../../widgets/gradient_card.dart';
 import 'plan_customization_screen.dart';
+import 'create_custom_plan_screen.dart';
 
 class PlanTemplatesScreen extends StatefulWidget {
   const PlanTemplatesScreen({super.key});
@@ -31,11 +32,22 @@ class _PlanTemplatesScreenState extends State<PlanTemplatesScreen> {
           children: [
             Text('Study Plan Templates'),
             Text(
-              'Choose a template for your exam preparation',
+              'Choose a template or create custom',
               style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: 'Create Custom Plan',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CreateCustomPlanScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<PlanProvider>(
         builder: (context, planProvider, _) {
@@ -45,22 +57,69 @@ class _PlanTemplatesScreenState extends State<PlanTemplatesScreen> {
 
           final templates = planProvider.templates;
 
-          if (templates.isEmpty) {
-            return const Center(
-              child: Text(
-                'No templates available',
-                style: TextStyle(color: AppTheme.textMuted),
-              ),
-            );
-          }
-
-          return ListView.builder(
+          return ListView(
             padding: const EdgeInsets.all(16),
-            itemCount: templates.length,
-            itemBuilder: (context, index) {
-              final template = templates[index];
-              return _TemplateCard(template: template);
-            },
+            children: [
+              // Create Custom Plan Card
+              GradientCard(
+                colors: [
+                  AppTheme.primaryColor.withOpacity(0.15),
+                  AppTheme.secondaryColor.withOpacity(0.1),
+                ],
+                margin: const EdgeInsets.only(bottom: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.create, color: AppTheme.primaryColor, size: 28),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Create Custom Plan',
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Build your own schedule from scratch',
+                                style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const CreateCustomPlanScreen()),
+                          );
+                        },
+                        child: const Text('Create Custom'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Templates
+              if (templates.isEmpty)
+                const Center(child: Text('No templates available'))
+              else
+                ...templates.map((template) => _TemplateCard(template: template)),
+            ],
           );
         },
       ),

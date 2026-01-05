@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../config/constants.dart';
 import '../../utils/date_helpers.dart';
 import '../../models/study_session.dart';
 import '../../services/session_service.dart';
+import '../../providers/stats_provider.dart';
 
 class StudyTimerScreen extends StatefulWidget {
   const StudyTimerScreen({super.key});
@@ -18,8 +20,12 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
   final _subjectController = TextEditingController();
   final _topicController = TextEditingController();
 
+  // Duration options in minutes
+  static const List<int> _durationOptions = [15, 25, 45, 60, 90, 120];
+  int _selectedDuration = 25; // Default pomodoro length
+
   Timer? _timer;
-  int _seconds = AppConstants.pomodoroLength * 60;
+  int _seconds = 25 * 60;
   bool _isRunning = false;
   bool _isBreak = false;
   DateTime? _startTime;
@@ -69,7 +75,7 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
     _timer?.cancel();
     setState(() {
       _isRunning = false;
-      _seconds = _isBreak ? AppConstants.shortBreakLength * 60 : AppConstants.pomodoroLength * 60;
+      _seconds = _isBreak ? 5 * 60 : _selectedDuration * 60;
       _startTime = null;
     });
   }
@@ -78,6 +84,8 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
     _timer?.cancel();
 
     if (!_isBreak && _startTime != null) {
+      final sessionDuration = _selectedDuration; // Use selected duration
+
       // Save study session
       try {
         await _sessionService.createSession(
@@ -89,31 +97,77 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
             completed: true,
           ),
         );
+
+        // Update stats for gamification
+        final statsProvider = context.read<StatsProvider>();
+        final newBadges = await statsProvider.updateStudyStats(
+          minutes: sessionDuration,
+          sessionCompleted: true,
+        );
+
+        // Show badge notification if earned new badges
+        if (mounted && newBadges.isNotEmpty) {
+          _showBadgeNotification(newBadges);
+        }
       } catch (e) {
-        print('Error saving session: $e');
+        debugPrint('Error saving session: $e');
       }
     }
 
     setState(() {
       _isRunning = false;
       _isBreak = !_isBreak;
-      _seconds = _isBreak ? AppConstants.shortBreakLength * 60 : AppConstants.pomodoroLength * 60;
+      _seconds = _isBreak ? 5 * 60 : _selectedDuration * 60;
       _startTime = null;
     });
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_isBreak ? 'Time for a break!' : 'Break over! Back to work!'),
-          backgroundColor: _isBreak ? AppTheme.warningColor : AppTheme.successColor,
+          content: Text(_isBreak ? '🎉 Great work! Time for a break!' : 'Break over! Back to work!'),
+          backgroundColor: _isBreak ? AppTheme.successColor : AppTheme.primaryColor,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
   }
 
+  void _showBadgeNotification(List<dynamic> newBadges) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('🎉 New Badge!', textAlign: TextAlign.center),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: newBadges.map<Widget>((badge) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                children: [
+                  Text(badge['icon'] ?? '🏆', style: const TextStyle(fontSize: 48)),
+                  const SizedBox(height: 8),
+                  Text(badge['name'] ?? 'Badge', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(badge['description'] ?? '', style: TextStyle(color: AppTheme.textMuted)),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Awesome!'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final progress = 1 - (_seconds / (_isBreak ? AppConstants.shortBreakLength * 60 : AppConstants.pomodoroLength * 60));
+    final totalSeconds = _isBreak ? 5 * 60 : _selectedDuration * 60;
+    final progress = 1 - (_seconds / totalSeconds);
 
     return Scaffold(
       appBar: AppBar(
@@ -123,6 +177,36 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
+            // Duration Selector
+            if (!_isRunning && !_isBreak) ...[
+              const Text('Select Duration', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: _durationOptions.map((mins) {
+                  final isSelected = mins == _selectedDuration;
+                  return ChoiceChip(
+                    label: Text('$mins min'),
+                    selected: isSelected,
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedDuration = mins;
+                        _seconds = mins * 60;
+                      });
+                    },
+                    selectedColor: AppTheme.primaryColor,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : AppTheme.textPrimary,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 32),
+            ],
+
             // Timer Circle
             SizedBox(
               width: 280,

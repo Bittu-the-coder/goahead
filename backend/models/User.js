@@ -46,7 +46,29 @@ const userSchema = new mongoose.Schema({
       type: Number,
       default: 240 // minutes (4 hours)
     }
-  }
+  },
+  // Gamification - Study Statistics
+  studyStats: {
+    totalMinutes: { type: Number, default: 0 },
+    totalSessions: { type: Number, default: 0 },
+    currentStreak: { type: Number, default: 0 },
+    longestStreak: { type: Number, default: 0 },
+    lastStudyDate: { type: Date },
+    weeklyGoal: { type: Number, default: 600 } // 10 hours per week
+  },
+  // Badges earned by user
+  badges: [{
+    badgeId: { type: String, required: true },
+    earnedAt: { type: Date, default: Date.now },
+    name: String,
+    icon: String,
+    description: String
+  }],
+  // Daily study log for streak calculation
+  dailyStudyLog: [{
+    date: { type: Date, required: true },
+    minutes: { type: Number, default: 0 }
+  }]
 }, {
   timestamps: true
 });

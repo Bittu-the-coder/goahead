@@ -2,9 +2,13 @@ import 'package:flutter/foundation.dart';
 import '../models/study_plan.dart';
 import '../models/plan_template.dart';
 import '../services/plan_service.dart';
+import '../services/notification_service.dart';
+import '../services/alarm_service.dart';
 
 class PlanProvider with ChangeNotifier {
   final PlanService _planService = PlanService();
+  final NotificationService _notificationService = NotificationService();
+  final AlarmService _alarmService = AlarmService();
 
   List<PlanTemplate> _templates = [];
   List<StudyPlan> _plans = [];
@@ -43,13 +47,13 @@ class PlanProvider with ChangeNotifier {
     try {
       _plans = await _planService.getPlans();
       if (_plans.isNotEmpty) {
-        _activePlan = _plans.firstWhere(
-          (plan) => plan.isActive && !plan.isExpired,
-          orElse: () => _plans.first,
-        );
-        // Load today's tasks if there's an active plan
-        if (_activePlan != null) {
+        // Only set active plan if there's one explicitly marked as active
+        final activePlans = _plans.where((plan) => plan.isActive && !plan.isExpired).toList();
+        if (activePlans.isNotEmpty) {
+          _activePlan = activePlans.first;
           await _loadTodayTasks();
+        } else {
+          _activePlan = null; // No auto-selection for new users
         }
       }
     } catch (e) {
@@ -83,8 +87,38 @@ class PlanProvider with ChangeNotifier {
       );
 
       _todayTasks = todaySchedule.subjects;
+
+      // Schedule notifications for each upcoming task
+      _scheduleTaskNotifications(_todayTasks);
     } catch (e) {
       _error = e.toString();
+    }
+  }
+
+  void _scheduleTaskNotifications(List<SubjectSlot> tasks) {
+    final now = DateTime.now();
+
+    for (int i = 0; i < tasks.length; i++) {
+      final task = tasks[i];
+      if (task.completed) continue;
+
+      // Parse start time (format: "09:00" or "14:30")
+      final timeParts = task.startTime.split(':');
+      if (timeParts.length != 2) continue;
+
+      final hour = int.tryParse(timeParts[0]) ?? 0;
+      final minute = int.tryParse(timeParts[1]) ?? 0;
+
+      final scheduledTime = DateTime(now.year, now.month, now.day, hour, minute);
+
+      // Only schedule if time is in the future
+      if (scheduledTime.isAfter(now)) {
+        _alarmService.scheduleTaskNotification(
+          alarmId: 1000 + i, // Unique ID for task notifications
+          taskName: task.name,
+          scheduledTime: scheduledTime,
+        );
+      }
     }
   }
 

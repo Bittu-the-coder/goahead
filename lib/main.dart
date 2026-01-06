@@ -10,6 +10,7 @@ import 'providers/timer_provider.dart';
 import 'services/api_service.dart';
 import 'services/storage_service.dart';
 import 'services/notification_service.dart';
+import 'services/alarm_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/dashboard_screen.dart';
 
@@ -20,6 +21,7 @@ void main() async {
   await StorageService().initialize();
   await ApiService().initialize();
   await NotificationService().initialize();
+  await AlarmService().initialize();
 
   runApp(const MyApp());
 }
@@ -91,7 +93,7 @@ class _SplashScreenState extends State<SplashScreen> {
             // App Logo
             ClipOval(
               child: Image.asset(
-                'assets/icon/app_icon.png',
+                'assets/icon/logo.png',
                 width: 100,
                 height: 100,
                 errorBuilder: (context, error, stackTrace) => Container(

@@ -27,14 +27,28 @@ class NotificationService {
     );
 
     await _notifications.initialize(initSettings);
+
+    // Request notification permission for Android 13+
+    await _requestPermission();
+
     _initialized = true;
   }
 
+  Future<void> _requestPermission() async {
+    final android = _notifications.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (android != null) {
+      await android.requestNotificationsPermission();
+    }
+  }
+
+  // Show timer notification (persistent in notification area)
   // Show timer notification (persistent in notification area)
   Future<void> showTimerNotification({
     required String title,
     required String body,
     required int seconds,
+    int? endTimeMs, // New: End time in milliseconds for chronometer
   }) async {
     final androidDetails = AndroidNotificationDetails(
       'timer_channel',
@@ -44,7 +58,10 @@ class NotificationService {
       priority: Priority.low,
       ongoing: true,
       autoCancel: false,
-      showWhen: false,
+      showWhen: true,
+      when: endTimeMs, // Set the end time
+      usesChronometer: true, // Enable native countdown
+      chronometerCountDown: true, // Count down instead of up
       silent: true,
       playSound: false,
       enableVibration: false,
@@ -55,7 +72,7 @@ class NotificationService {
     await _notifications.show(
       1,
       title,
-      body, // Show actual time passed as body
+      body,
       notificationDetails,
     );
   }

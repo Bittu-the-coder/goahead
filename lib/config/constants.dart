@@ -1,6 +1,6 @@
 class AppConstants {
-  // API Configuration - Production
-  static const String apiBaseUrl = 'https://goahead-backend.vercel.app/api';
+  // API Configuration - Production (Render)
+  static const String apiBaseUrl = 'https://goahead.onrender.com/api';
 
   // Storage Keys
   static const String tokenKey = 'auth_token';

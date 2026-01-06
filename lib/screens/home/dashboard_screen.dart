@@ -114,95 +114,94 @@ class DashboardHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final taskProvider = context.watch<TaskProvider>();
-    final goalProvider = context.watch<GoalProvider>();
-    final planProvider = context.watch<PlanProvider>();
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Dashboard'),
-            Text(
-              'Welcome, ${authProvider.user?.name ?? "User"}',
-              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await authProvider.logout();
-              if (context.mounted) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                );
-              }
-            },
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await Future.wait([
-            taskProvider.loadTasks(),
-            goalProvider.loadGoals(),
-            planProvider.loadPlans(),
-          ]);
-        },
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Today's Stats
-              const Text(
-                'Today\'s Progress',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
+    return Consumer4<AuthProvider, TaskProvider, GoalProvider, PlanProvider>(
+      builder: (context, authProvider, taskProvider, goalProvider, planProvider, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Dashboard'),
+                Text(
+                  'Welcome, ${authProvider.user?.name ?? "User"}',
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                 ),
-              ),
-              const SizedBox(height: 12),
-              _buildTodayStats(context, taskProvider, planProvider),
-
-              const SizedBox(height: 24),
-
-              // Today's Study Tasks (from plan)
-              if (planProvider.activePlan != null) ...[
-                _buildTodayTasksWidget(context, planProvider),
-                const SizedBox(height: 24),
               ],
-
-              // Quick Actions
-              const Text(
-                'Quick Actions',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.logout),
+                onPressed: () async {
+                  await authProvider.logout();
+                  if (context.mounted) {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    );
+                  }
+                },
               ),
-              const SizedBox(height: 12),
-              _buildQuickActions(context),
-
-              const SizedBox(height: 24),
-
-              // Active Tasks
-              _buildActiveTasksSection(taskProvider),
-
-              const SizedBox(height: 24),
-
-              // Active Goals
-              _buildActiveGoalsSection(goalProvider),
             ],
           ),
-        ),
-      ),
+          body: RefreshIndicator(
+            onRefresh: () async {
+              await Future.wait([
+                taskProvider.loadTasks(),
+                goalProvider.loadGoals(),
+                planProvider.loadPlans(),
+              ]);
+            },
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Today's Stats
+                  const Text(
+                    'Today\'s Progress',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildTodayStats(context, taskProvider, planProvider),
+
+                  const SizedBox(height: 24),
+
+                  // Today's Study Tasks (from plan)
+                  if (planProvider.activePlan != null) ...[
+                    _buildTodayTasksWidget(context, planProvider),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Quick Actions
+                  const Text(
+                    'Quick Actions',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildQuickActions(context),
+
+                  const SizedBox(height: 24),
+
+                  // Active Tasks
+                  _buildActiveTasksSection(taskProvider),
+
+                  const SizedBox(height: 24),
+
+                  // Active Goals
+                  _buildActiveGoalsSection(goalProvider),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -334,12 +333,15 @@ class DashboardHome extends StatelessWidget {
           children: [
             const Icon(Icons.today, color: AppTheme.primaryColor, size: 20),
             const SizedBox(width: 8),
-            Text(
-              'Today\'s Study Schedule - $dayName',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
+            Flexible(
+              child: Text(
+                'Today\'s Study Schedule - $dayName',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

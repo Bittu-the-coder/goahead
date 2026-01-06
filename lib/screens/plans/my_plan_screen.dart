@@ -58,6 +58,105 @@ class _MyPlanScreenState extends State<MyPlanScreen> {
     );
   }
 
+  void _showEditPlanDialog(BuildContext context, PlanProvider planProvider, dynamic plan) {
+    final nameController = TextEditingController(text: plan.name);
+    final descController = TextEditingController(text: plan.description ?? '');
+    DateTime newEndDate = plan.endDate;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Edit Plan'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Plan Name',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+                const Text('End Date', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: newEndDate,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) {
+                      setDialogState(() => newEndDate = picked);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppTheme.borderColor),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today, size: 20),
+                        const SizedBox(width: 8),
+                        Text(DateHelpers.formatDate(newEndDate)),
+                        const Spacer(),
+                        const Icon(Icons.edit, size: 16, color: AppTheme.primaryColor),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await planProvider.updatePlan(
+                  plan.id!,
+                  {
+                    'name': nameController.text,
+                    'description': descController.text,
+                    'endDate': newEndDate.toIso8601String(),
+                  },
+                );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    const SnackBar(
+                      content: Text('✅ Plan updated!'),
+                      backgroundColor: AppTheme.successColor,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<PlanProvider>(
@@ -121,9 +220,21 @@ class _MyPlanScreenState extends State<MyPlanScreen> {
                   onSelected: (value) {
                     if (value == 'delete') {
                       _showDeleteDialog(context, planProvider);
+                    } else if (value == 'edit') {
+                      _showEditPlanDialog(context, planProvider, activePlan);
                     }
                   },
                   itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, color: AppTheme.primaryColor),
+                          SizedBox(width: 8),
+                          Text('Edit Plan'),
+                        ],
+                      ),
+                    ),
                     const PopupMenuItem(
                       value: 'delete',
                       child: Row(
@@ -266,61 +377,73 @@ class _MyPlanScreenState extends State<MyPlanScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // Progress Bar (Auto-calculated)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // Progress Bar - Today's Progress
+                Builder(
+                  builder: (context) {
+                    final todayTotal = todaySchedule.subjects.length;
+                    final todayCompleted = todaySchedule.subjects.where((s) => s.completed).length;
+                    final todayProgress = todayTotal > 0 ? (todayCompleted / todayTotal * 100).round() : 0;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Overall Progress',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              '${activePlan.progress}%',
-                              style: const TextStyle(
+                            const Text(
+                              "Today's Progress",
+                              style: TextStyle(
                                 fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryColor,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textPrimary,
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.auto_awesome,
-                              size: 16,
-                              color: AppTheme.primaryColor,
+                            Row(
+                              children: [
+                                Text(
+                                  '$todayCompleted/$todayTotal tasks',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.primaryColor,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '($todayProgress%)',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: todayProgress / 100,
+                            minHeight: 12,
+                            backgroundColor: AppTheme.borderColor,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              todayProgress >= 100 ? AppTheme.successColor : AppTheme.primaryColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          todayProgress >= 100 ? '🎉 All tasks completed!' : 'Complete today\'s tasks to boost progress',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textMuted,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
                       ],
-                    ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: activePlan.progress / 100,
-                        minHeight: 12,
-                        backgroundColor: AppTheme.borderColor,
-                        valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Auto-calculated from completed tasks',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppTheme.textMuted,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ],
             ),

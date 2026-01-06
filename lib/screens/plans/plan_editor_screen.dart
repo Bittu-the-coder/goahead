@@ -260,23 +260,65 @@ class _SubjectDialog extends StatefulWidget {
 
 class _SubjectDialogState extends State<_SubjectDialog> {
   late TextEditingController _nameController;
-  late TextEditingController _startTimeController;
-  late TextEditingController _endTimeController;
-  late TextEditingController _durationController;
+  TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _endTime = const TimeOfDay(hour: 10, minute: 0);
   String _priority = 'medium';
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.subject?.name ?? '');
-    _startTimeController = TextEditingController(text: widget.subject?.startTime ?? '09:00');
-    _endTimeController = TextEditingController(text: widget.subject?.endTime ?? '10:00');
-    _durationController = TextEditingController(text: (widget.subject?.duration ?? 60).toString());
+
+    // Parse existing times
+    if (widget.subject?.startTime != null) {
+      final parts = widget.subject!.startTime.split(':');
+      if (parts.length == 2) {
+        _startTime = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+      }
+    }
+    if (widget.subject?.endTime != null) {
+      final parts = widget.subject!.endTime.split(':');
+      if (parts.length == 2) {
+        _endTime = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+      }
+    }
     _priority = widget.subject?.priority ?? 'medium';
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '${hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')} $period';
+  }
+
+  String _formatTime24(TimeOfDay time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  int _calculateDuration() {
+    final startMinutes = _startTime.hour * 60 + _startTime.minute;
+    final endMinutes = _endTime.hour * 60 + _endTime.minute;
+    var duration = endMinutes - startMinutes;
+    if (duration < 0) duration += 24 * 60;
+    return duration;
+  }
+
+  Future<void> _pickTime(bool isStart) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: isStart ? _startTime : _endTime,
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStart) _startTime = picked; else _endTime = picked;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final duration = _calculateDuration();
+
     return Dialog(
       child: Container(
         width: MediaQuery.of(context).size.width * 0.9,
@@ -290,12 +332,54 @@ class _SubjectDialogState extends State<_SubjectDialog> {
               TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Subject Name *', border: OutlineInputBorder())),
               const SizedBox(height: 16),
               Row(children: [
-                Expanded(child: TextField(controller: _startTimeController, decoration: const InputDecoration(labelText: 'Start', border: OutlineInputBorder()))),
+                Expanded(
+                  child: InkWell(
+                    onTap: () => _pickTime(true),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(labelText: 'Start', border: OutlineInputBorder()),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(child: Text(_formatTime(_startTime), style: const TextStyle(fontSize: 13))),
+                          const Icon(Icons.access_time, size: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: TextField(controller: _endTimeController, decoration: const InputDecoration(labelText: 'End', border: OutlineInputBorder()))),
+                Expanded(
+                  child: InkWell(
+                    onTap: () => _pickTime(false),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(labelText: 'End', border: OutlineInputBorder()),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(child: Text(_formatTime(_endTime), style: const TextStyle(fontSize: 13))),
+                          const Icon(Icons.access_time, size: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ]),
               const SizedBox(height: 16),
-              TextField(controller: _durationController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Duration (mins)', border: OutlineInputBorder())),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.timer, color: AppTheme.primaryColor),
+                    const SizedBox(width: 8),
+                    Text('Duration: $duration mins', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _priority,
@@ -316,9 +400,9 @@ class _SubjectDialogState extends State<_SubjectDialog> {
                     if (_nameController.text.isEmpty) return;
                     widget.onSave(SubjectSlot(
                       name: _nameController.text,
-                      startTime: _startTimeController.text,
-                      endTime: _endTimeController.text,
-                      duration: int.tryParse(_durationController.text) ?? 60,
+                      startTime: _formatTime24(_startTime),
+                      endTime: _formatTime24(_endTime),
+                      duration: _calculateDuration(),
                       priority: _priority,
                       completed: widget.subject?.completed ?? false,
                     ));

@@ -283,10 +283,22 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
     final calendar = stats.calendar;
     if (calendar.isEmpty) return const SizedBox();
 
+    // Get current month name
+    final now = DateTime.now();
+    final monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+    final currentMonth = monthNames[now.month - 1];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Study Calendar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Study Calendar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(currentMonth, style: TextStyle(fontSize: 14, color: AppTheme.textMuted)),
+          ],
+        ),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
@@ -294,26 +306,75 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
             color: AppTheme.surfaceColor,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: calendar.map<Widget>((day) {
-              final minutes = day['minutes'] ?? 0;
-              final intensity = minutes > 0 ? (minutes / 120).clamp(0.2, 1.0) : 0.0;
-              return Tooltip(
-                message: '${_formatDate(day['date'])}: ${_formatMinutes(minutes)}',
-                child: Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: minutes > 0
-                        ? Colors.green.withOpacity(intensity)
-                        : Colors.grey.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(3),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Weekday labels
+              Row(
+                children: ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) =>
+                  SizedBox(
+                    width: 20,
+                    child: Text(day,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                    ),
                   ),
+                ).toList(),
+              ),
+              const SizedBox(height: 8),
+              // Calendar grid - 7 columns (days of week)
+              SizedBox(
+                height: ((calendar.length / 7).ceil() * 20).toDouble(),
+                child: GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
+                    crossAxisSpacing: 6,
+                    mainAxisSpacing: 6,
+                  ),
+                  itemCount: calendar.length,
+                  itemBuilder: (context, index) {
+                    final day = calendar[index];
+                    final minutes = day['minutes'] ?? 0;
+                    final intensity = minutes > 0 ? (minutes / 120).clamp(0.3, 1.0) : 0.0;
+
+                    return Tooltip(
+                      message: '${_formatDate(day['date'])}: ${_formatMinutes(minutes)}',
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: minutes > 0
+                              ? Colors.green.withOpacity(intensity)
+                              : Colors.grey.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              );
-            }).toList(),
+              ),
+              const SizedBox(height: 12),
+              // Legend
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text('Less', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+                  const SizedBox(width: 4),
+                  ...List.generate(5, (i) => Container(
+                    width: 12,
+                    height: 12,
+                    margin: const EdgeInsets.only(left: 2),
+                    decoration: BoxDecoration(
+                      color: i == 0
+                          ? Colors.grey.withOpacity(0.15)
+                          : Colors.green.withOpacity(0.3 + (i * 0.175)),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  )),
+                  const SizedBox(width: 4),
+                  Text('More', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+                ],
+              ),
+            ],
           ),
         ),
       ],

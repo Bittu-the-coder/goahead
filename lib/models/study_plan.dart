@@ -151,4 +151,34 @@ class StudyPlan {
   bool get isExpired {
     return DateTime.now().isAfter(endDate);
   }
+
+  StudyPlan copyWith({
+    String? id,
+    String? name,
+    String? templateType,
+    String? description,
+    DateTime? startDate,
+    DateTime? endDate,
+    List<DaySchedule>? weeklySchedule,
+    int? totalWeeks,
+    bool? isActive,
+    int? progress,
+    Map<String, dynamic>? customizations,
+    DateTime? createdAt,
+  }) {
+    return StudyPlan(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      templateType: templateType ?? this.templateType,
+      description: description ?? this.description,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      weeklySchedule: weeklySchedule ?? this.weeklySchedule,
+      totalWeeks: totalWeeks ?? this.totalWeeks,
+      isActive: isActive ?? this.isActive,
+      progress: progress ?? this.progress,
+      customizations: customizations ?? this.customizations,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }

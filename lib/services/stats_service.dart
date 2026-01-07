@@ -28,7 +28,7 @@ class StatsService {
     throw Exception(response['message'] ?? 'Failed to get badges');
   }
 
-  // Get streak calendar (last 30 days)
+  // Get streak calendar (last 365 days)
   Future<Map<String, dynamic>> getStreakCalendar() async {
     final response = await _apiService.get('/stats/calendar');
     if (response['success'] == true) {

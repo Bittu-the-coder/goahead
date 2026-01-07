@@ -184,24 +184,24 @@ export const updateStats = async (req, res) => {
   }
 };
 
-// @desc    Get streak calendar (last 30 days)
+// @desc    Get streak calendar (last 365 days)
 // @route   GET /api/stats/calendar
 // @access  Private
 export const getStreakCalendar = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    thirtyDaysAgo.setHours(0, 0, 0, 0);
+    const oneYearAgo = new Date();
+    oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+    oneYearAgo.setHours(0, 0, 0, 0);
 
     const recentLogs = user.dailyStudyLog?.filter(log => {
-      return new Date(log.date) >= thirtyDaysAgo;
+      return new Date(log.date) >= oneYearAgo;
     }) || [];
 
-    // Create calendar data
+    // Create calendar data for 365 days
     const calendar = [];
-    for (let i = 0; i < 30; i++) {
+    for (let i = 364; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       date.setHours(0, 0, 0, 0);
@@ -212,8 +212,11 @@ export const getStreakCalendar = async (req, res) => {
         return logDate.getTime() === date.getTime();
       });
 
-      calendar.unshift({
-        date: date.toISOString(),
+      // Use YYYY-MM-DD format for consistency
+      const dateStr = date.toISOString().split('T')[0];
+
+      calendar.push({
+        date: dateStr,
         minutes: log?.minutes || 0,
         studied: (log?.minutes || 0) > 0
       });

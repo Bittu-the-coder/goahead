@@ -280,98 +280,237 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
   }
 
   Widget _buildCalendarHeatmap(StatsProvider stats) {
-    final calendar = stats.calendar;
-    if (calendar.isEmpty) return const SizedBox();
-
-    // Get current month name
+    // Generate full year (365 days) of calendar data
     final now = DateTime.now();
-    final monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                        'July', 'August', 'September', 'October', 'November', 'December'];
-    final currentMonth = monthNames[now.month - 1];
+    final oneYearAgo = now.subtract(const Duration(days: 364));
+
+    // Create a map from existing data for quick lookup
+    final Map<String, int> calendarMap = {};
+    for (var day in stats.calendar) {
+      if (day['date'] != null) {
+        calendarMap[day['date']] = day['minutes'] ?? 0;
+      }
+    }
+
+    // Generate full year data
+    final List<Map<String, dynamic>> fullYearData = [];
+
+    // Start from the beginning of the week containing oneYearAgo
+    DateTime startDate = oneYearAgo;
+    while (startDate.weekday != DateTime.sunday) {
+      startDate = startDate.subtract(const Duration(days: 1));
+    }
+
+    // Fill until today (and complete the current week)
+    DateTime endDate = now;
+    while (endDate.weekday != DateTime.saturday) {
+      endDate = endDate.add(const Duration(days: 1));
+    }
+
+    for (DateTime date = startDate; !date.isAfter(endDate); date = date.add(const Duration(days: 1))) {
+      final dateStr = date.toIso8601String().split('T')[0];
+      fullYearData.add({
+        'date': dateStr,
+        'minutes': calendarMap[dateStr] ?? 0,
+      });
+    }
+
+    // Calculate dimensions
+    final totalWeeks = (fullYearData.length / 7).ceil();
+    const double cellSize = 10;
+    const double cellSpacing = 2;
+    const double gridHeight = (cellSize + cellSpacing) * 7;
+
+    // Count active days from full year data
+    final activeDays = fullYearData.where((d) => (d['minutes'] ?? 0) > 0).length;
+
+    // Calculate total study time
+    final totalMinutes = fullYearData.fold<int>(0, (sum, d) => sum + ((d['minutes'] ?? 0) as int));
+    final totalHours = totalMinutes ~/ 60;
+
+    // Use actual streak from stats
+    final currentStreak = stats.currentStreak;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Header
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Study Calendar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text(currentMonth, style: TextStyle(fontSize: 14, color: AppTheme.textMuted)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Study Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$totalHours hrs total • $activeDays active days',
+                    style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: currentStreak > 0
+                    ? AppTheme.successColor.withOpacity(0.15)
+                    : AppTheme.textMuted.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.local_fire_department,
+                    size: 14,
+                    color: currentStreak > 0 ? AppTheme.successColor : AppTheme.textMuted,
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    '$currentStreak day streak',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: currentStreak > 0 ? AppTheme.successColor : AppTheme.textMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+
+        // Calendar Card
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: AppTheme.surfaceColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Weekday labels
-              Row(
-                children: ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) =>
-                  SizedBox(
-                    width: 20,
-                    child: Text(day,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 10, color: AppTheme.textMuted),
-                    ),
-                  ),
-                ).toList(),
-              ),
-              const SizedBox(height: 8),
-              // Calendar grid - 7 columns (days of week)
-              SizedBox(
-                height: ((calendar.length / 7).ceil() * 20).toDouble(),
-                child: GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 7,
-                    crossAxisSpacing: 6,
-                    mainAxisSpacing: 6,
-                  ),
-                  itemCount: calendar.length,
-                  itemBuilder: (context, index) {
-                    final day = calendar[index];
-                    final minutes = day['minutes'] ?? 0;
-                    final intensity = minutes > 0 ? (minutes / 120).clamp(0.3, 1.0) : 0.0;
-
-                    return Tooltip(
-                      message: '${_formatDate(day['date'])}: ${_formatMinutes(minutes)}',
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: minutes > 0
-                              ? Colors.green.withOpacity(intensity)
-                              : Colors.grey.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+              // Scrollable calendar
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Month labels
+                    Padding(
+                      padding: const EdgeInsets.only(left: 20),
+                      child: SizedBox(
+                        width: totalWeeks * (cellSize + cellSpacing),
+                        height: 14,
+                        child: _buildMonthLabels(fullYearData, cellSize + cellSpacing),
                       ),
-                    );
-                  },
+                    ),
+                    const SizedBox(height: 4),
+
+                    // Grid with day labels
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Day labels
+                        Column(
+                          children: ['S', 'M', 'T', 'W', 'T', 'F', 'S'].asMap().entries.map((entry) {
+                            final show = entry.key == 1 || entry.key == 3 || entry.key == 5;
+                            return SizedBox(
+                              height: cellSize + cellSpacing,
+                              width: 16,
+                              child: Center(
+                                child: Text(
+                                  show ? entry.value : '',
+                                  style: TextStyle(fontSize: 8, color: AppTheme.textMuted),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+
+                        // Heatmap grid
+                        SizedBox(
+                          width: totalWeeks * (cellSize + cellSpacing),
+                          height: gridHeight,
+                          child: GridView.builder(
+                            physics: const NeverScrollableScrollPhysics(),
+                            scrollDirection: Axis.horizontal,
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 7,
+                              crossAxisSpacing: cellSpacing,
+                              mainAxisSpacing: cellSpacing,
+                            ),
+                            itemCount: fullYearData.length,
+                            itemBuilder: (context, index) {
+                              final day = fullYearData[index];
+                              final minutes = day['minutes'] ?? 0;
+                              final dateStr = day['date'] ?? '';
+                              final date = DateTime.tryParse(dateStr);
+                              final isFuture = date != null && date.isAfter(now);
+
+                              Color cellColor;
+                              if (isFuture) {
+                                return const SizedBox();
+                              } else if (minutes == 0) {
+                                cellColor = const Color(0xFF161B22);
+                              } else if (minutes < 30) {
+                                cellColor = const Color(0xFF0E4429);
+                              } else if (minutes < 60) {
+                                cellColor = const Color(0xFF006D32);
+                              } else if (minutes < 120) {
+                                cellColor = const Color(0xFF26A641);
+                              } else {
+                                cellColor = const Color(0xFF39D353);
+                              }
+
+                              return Tooltip(
+                                message: '${_formatFullDate(dateStr)}\n${minutes > 0 ? "${_formatMinutes(minutes)} studied" : "No activity"}',
+                                preferBelow: false,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: cellColor,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
+
+              const SizedBox(height: 10),
+
               // Legend
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text('Less', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
-                  const SizedBox(width: 4),
-                  ...List.generate(5, (i) => Container(
-                    width: 12,
-                    height: 12,
+                  Text('Less', style: TextStyle(fontSize: 9, color: AppTheme.textMuted)),
+                  const SizedBox(width: 3),
+                  ...[
+                    const Color(0xFF161B22),
+                    const Color(0xFF0E4429),
+                    const Color(0xFF006D32),
+                    const Color(0xFF26A641),
+                    const Color(0xFF39D353),
+                  ].map((color) => Container(
+                    width: 9,
+                    height: 9,
                     margin: const EdgeInsets.only(left: 2),
                     decoration: BoxDecoration(
-                      color: i == 0
-                          ? Colors.grey.withOpacity(0.15)
-                          : Colors.green.withOpacity(0.3 + (i * 0.175)),
+                      color: color,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   )),
-                  const SizedBox(width: 4),
-                  Text('More', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+                  const SizedBox(width: 3),
+                  Text('More', style: TextStyle(fontSize: 9, color: AppTheme.textMuted)),
                 ],
               ),
             ],
@@ -380,6 +519,51 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
       ],
     );
   }
+
+  Widget _buildMonthLabels(List<Map<String, dynamic>> data, double weekWidth) {
+    final monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final List<Widget> labels = [];
+    int? lastMonth;
+
+    for (int week = 0; week < (data.length / 7).ceil(); week++) {
+      final dayIndex = week * 7;
+      if (dayIndex < data.length) {
+        final dateStr = data[dayIndex]['date'];
+        if (dateStr != null) {
+          final date = DateTime.tryParse(dateStr);
+          if (date != null && date.month != lastMonth) {
+            labels.add(
+              SizedBox(
+                width: weekWidth,
+                child: Text(
+                  monthNames[date.month - 1],
+                  style: TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                ),
+              ),
+            );
+            lastMonth = date.month;
+          } else {
+            labels.add(SizedBox(width: weekWidth));
+          }
+        } else {
+          labels.add(SizedBox(width: weekWidth));
+        }
+      }
+    }
+
+    return Row(children: labels);
+  }
+
+  String _formatFullDate(String? dateStr) {
+    if (dateStr == null) return '';
+    final date = DateTime.tryParse(dateStr);
+    if (date == null) return '';
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return '${days[date.weekday % 7]}, ${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+
 
   Widget _buildBadgesSection(StatsProvider stats) {
     final badges = stats.badges;

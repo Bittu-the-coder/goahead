@@ -44,50 +44,95 @@ class TaskProvider with ChangeNotifier {
   }
 
   Future<void> createTask(Task task) async {
+    // Optimistic Update
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final optimisticTask = task.copyWith(id: tempId);
+    _tasks.insert(0, optimisticTask);
+    notifyListeners();
+
     try {
       final newTask = await _taskService.createTask(task);
-      _tasks.insert(0, newTask);
-      notifyListeners();
+      // Replace temp task with real one
+      final index = _tasks.indexWhere((t) => t.id == tempId);
+      if (index != -1) {
+        _tasks[index] = newTask;
+        notifyListeners();
+      }
     } catch (e) {
+      // Revert on failure
+      _tasks.removeWhere((t) => t.id == tempId);
       _error = e.toString();
       notifyListeners();
     }
   }
 
   Future<void> updateTask(String id, Task task) async {
+    final index = _tasks.indexWhere((t) => t.id == id);
+    if (index == -1) return;
+
+    final originalTask = _tasks[index];
+
+    // Optimistic Update
+    _tasks[index] = task;
+    notifyListeners();
+
     try {
       final updatedTask = await _taskService.updateTask(id, task);
-      final index = _tasks.indexWhere((t) => t.id == id);
-      if (index != -1) {
-        _tasks[index] = updatedTask;
+      // Update with server response (in case of server-side changes)
+      final newIndex = _tasks.indexWhere((t) => t.id == id);
+      if (newIndex != -1) {
+        _tasks[newIndex] = updatedTask;
         notifyListeners();
       }
     } catch (e) {
+      // Revert on failure
+      _tasks[index] = originalTask;
       _error = e.toString();
       notifyListeners();
     }
   }
 
   Future<void> deleteTask(String id) async {
+    final index = _tasks.indexWhere((t) => t.id == id);
+    if (index == -1) return;
+
+    final originalTask = _tasks[index];
+
+    // Optimistic Update
+    _tasks.removeAt(index);
+    notifyListeners();
+
     try {
       await _taskService.deleteTask(id);
-      _tasks.removeWhere((task) => task.id == id);
-      notifyListeners();
     } catch (e) {
+      // Revert on failure
+      _tasks.insert(index, originalTask);
       _error = e.toString();
       notifyListeners();
     }
   }
 
   Future<void> toggleComplete(String id) async {
+    final index = _tasks.indexWhere((t) => t.id == id);
+    if (index == -1) return;
+
+    final originalTask = _tasks[index];
+    final updatedTask = originalTask.copyWith(completed: !originalTask.completed);
+
+    // Optimistic Update
+    _tasks[index] = updatedTask;
+    notifyListeners();
+
     try {
-      final updatedTask = await _taskService.toggleComplete(id);
-      final index = _tasks.indexWhere((t) => t.id == id);
-      if (index != -1) {
-        _tasks[index] = updatedTask;
+      final serverTask = await _taskService.toggleComplete(id);
+      final newIndex = _tasks.indexWhere((t) => t.id == id);
+      if (newIndex != -1) {
+        _tasks[newIndex] = serverTask;
         notifyListeners();
       }
     } catch (e) {
+      // Revert on failure
+      _tasks[index] = originalTask;
       _error = e.toString();
       notifyListeners();
     }

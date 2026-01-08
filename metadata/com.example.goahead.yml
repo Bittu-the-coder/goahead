@@ -1,0 +1,48 @@
+Categories:
+  - Education
+  - Time
+License: MIT
+AuthorName: Your Name
+AuthorEmail: your@email.com
+AuthorWebSite: https://github.com/YOUR_USERNAME
+SourceCode: https://github.com/YOUR_USERNAME/goahead
+IssueTracker: https://github.com/YOUR_USERNAME/goahead/issues
+
+AutoName: GoAhead
+
+RepoType: git
+Repo: https://github.com/YOUR_USERNAME/goahead.git
+
+Builds:
+  - versionName: 1.0.0
+    versionCode: 1
+    commit: v1.0.0
+    subdir: android/app
+    gradle:
+      - yes
+    srclibs:
+      - flutter@stable
+    prebuild:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 1.0.0
+CurrentVersionCode: 1
+
+Name: GoAhead - Study Planner
+Summary: AI-powered study planning and time management app
+
+Description: |
+  GoAhead is a comprehensive study planning application designed to help
+  students prepare for competitive exams like CAT, UPSC, JEE, NEET, and more.
+
+  Features:
+  * Pomodoro Timer with notifications
+  * Study plan templates for major exams
+  * Task and goal management
+  * Progress tracking with calendar heatmap
+  * Study statistics and badges
+  * Offline support

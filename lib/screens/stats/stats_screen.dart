@@ -280,52 +280,47 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
   }
 
   Widget _buildCalendarHeatmap(StatsProvider stats) {
-    // Generate full year (365 days) of calendar data
     final now = DateTime.now();
-    final oneYearAgo = now.subtract(const Duration(days: 364));
 
-    // Create a map from existing data for quick lookup
-    final Map<String, int> calendarMap = {};
-    for (var day in stats.calendar) {
-      if (day['date'] != null) {
-        calendarMap[day['date']] = day['minutes'] ?? 0;
+    // Use calendar data from API directly, or generate if empty
+    List<Map<String, dynamic>> calendarData;
+
+    if (stats.calendar.isNotEmpty) {
+      // Use API data directly - cast to correct type
+      calendarData = stats.calendar.map((day) => {
+        'date': day['date']?.toString() ?? '',
+        'minutes': (day['minutes'] ?? 0) as int,
+      }).toList();
+    } else {
+      // Generate empty calendar if no API data
+      calendarData = [];
+      DateTime startDate = now.subtract(const Duration(days: 364));
+      while (startDate.weekday != DateTime.sunday) {
+        startDate = startDate.subtract(const Duration(days: 1));
+      }
+      DateTime endDate = now;
+      while (endDate.weekday != DateTime.saturday) {
+        endDate = endDate.add(const Duration(days: 1));
+      }
+      for (DateTime date = startDate; !date.isAfter(endDate); date = date.add(const Duration(days: 1))) {
+        calendarData.add({
+          'date': date.toIso8601String().split('T')[0],
+          'minutes': 0,
+        });
       }
     }
 
-    // Generate full year data
-    final List<Map<String, dynamic>> fullYearData = [];
-
-    // Start from the beginning of the week containing oneYearAgo
-    DateTime startDate = oneYearAgo;
-    while (startDate.weekday != DateTime.sunday) {
-      startDate = startDate.subtract(const Duration(days: 1));
-    }
-
-    // Fill until today (and complete the current week)
-    DateTime endDate = now;
-    while (endDate.weekday != DateTime.saturday) {
-      endDate = endDate.add(const Duration(days: 1));
-    }
-
-    for (DateTime date = startDate; !date.isAfter(endDate); date = date.add(const Duration(days: 1))) {
-      final dateStr = date.toIso8601String().split('T')[0];
-      fullYearData.add({
-        'date': dateStr,
-        'minutes': calendarMap[dateStr] ?? 0,
-      });
-    }
-
     // Calculate dimensions
-    final totalWeeks = (fullYearData.length / 7).ceil();
+    final totalWeeks = (calendarData.length / 7).ceil();
     const double cellSize = 10;
     const double cellSpacing = 2;
     const double gridHeight = (cellSize + cellSpacing) * 7;
 
-    // Count active days from full year data
-    final activeDays = fullYearData.where((d) => (d['minutes'] ?? 0) > 0).length;
+    // Count active days
+    final activeDays = calendarData.where((d) => (d['minutes'] ?? 0) > 0).length;
 
     // Calculate total study time
-    final totalMinutes = fullYearData.fold<int>(0, (sum, d) => sum + ((d['minutes'] ?? 0) as int));
+    final totalMinutes = calendarData.fold<int>(0, (sum, d) => sum + ((d['minutes'] ?? 0) as int));
     final totalHours = totalMinutes ~/ 60;
 
     // Use actual streak from stats
@@ -406,7 +401,7 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
                       child: SizedBox(
                         width: totalWeeks * (cellSize + cellSpacing),
                         height: 14,
-                        child: _buildMonthLabels(fullYearData, cellSize + cellSpacing),
+                        child: _buildMonthLabels(calendarData, cellSize + cellSpacing),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -444,9 +439,9 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
                               crossAxisSpacing: cellSpacing,
                               mainAxisSpacing: cellSpacing,
                             ),
-                            itemCount: fullYearData.length,
+                            itemCount: calendarData.length,
                             itemBuilder: (context, index) {
-                              final day = fullYearData[index];
+                              final day = calendarData[index];
                               final minutes = day['minutes'] ?? 0;
                               final dateStr = day['date'] ?? '';
                               final date = DateTime.tryParse(dateStr);
